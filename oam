@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ใบเบิกพัสดุ - อบต.ม่อนจอง</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --primary-blue: #1a3a5f;
+            --soft-blue: #f0f4f8;
+            --light-grey: #f9f9f9;
+            --success-green: #27ae60;
+            --danger-red: #e74c3c;
+        }
+
+        * { box-sizing: border-box; }
+        body { font-family: 'Prompt', sans-serif; background-color: #525659; margin: 0; padding: 10px; }
+
+        .no-print { width: 210mm; margin: 0 auto 10px; display: flex; gap: 10px; }
+        .btn { flex: 1; padding: 12px; border: none; border-radius: 8px; cursor: pointer; font-family: 'Prompt'; font-weight: 500; font-size: 15px; display: flex; align-items: center; justify-content: center; gap: 8px; transition: 0.2s; box-shadow: 0 4px 6px rgba(0,0,0,0.2); }
+        .btn-print { background: var(--success-green); color: white; }
+        .btn-clear { background: #4a5568; color: white; }
+        .btn-add { background: var(--primary-blue); color: white; margin: 15px 0; flex: none; width: auto; }
+
+        .page { width: 210mm; min-height: 297mm; padding: 15mm 15mm; margin: 0 auto 25px auto; background: white; position: relative; display: flex; flex-direction: column; box-shadow: 0 0 10px rgba(0,0,0,0.5); page-break-after: always; }
+
+        .doc-type-tag { font-size: 20px; font-weight: 700; margin-bottom: 5px; display: none; }
+        #copy-container .page { filter: grayscale(100%); }
+        #copy-container .doc-type-tag { display: block; filter: none !important; color: var(--success-green) !important; text-align: right; }
+        #copy-container { display: none; }
+
+        .header { display: flex; align-items: center; border-bottom: 3px double var(--primary-blue); padding-bottom: 15px; margin-bottom: 20px; }
+        .logo-box { width: 85px; height: 85px; margin-right: 20px; }
+        .logo-box img { width: 100%; height: 100%; object-fit: contain; }
+        .org-info { flex-grow: 1; }
+        .org-info h1 { margin: 0; color: var(--primary-blue); font-size: 20px; font-weight: 600; }
+        .org-info p { margin: 2px 0 0; font-size: 13px; color: #4a5568; line-height: 1.4; }
+
+        .doc-title-area { text-align: right; min-width: 210px; }
+        .doc-title-area h2 { margin: 0 0 5px 0; color: var(--primary-blue); font-size: 26px; }
+        .meta-row { display: flex; font-size: 14px; margin-bottom: 4px; justify-content: flex-end; align-items: center; }
+        .meta-row b { margin-right: 10px; width: 50px; }
+        .meta-value { border-bottom: 1px dashed #cbd5e0; min-width: 150px; text-align: left; padding: 0 5px; outline: none; }
+
+        .info-section { background: var(--soft-blue); padding: 15px 20px; border-radius: 8px; margin-bottom: 15px; display: grid; grid-template-columns: 1fr 1fr; gap: 10px 25px; }
+        .field { display: flex; font-size: 14px; align-items: baseline; }
+        .field b { white-space: nowrap; margin-right: 8px; color: var(--primary-blue); }
+        .field.full-width { grid-column: span 2; }
+        .editable-input { border-bottom: 1px dashed #cbd5e0; flex-grow: 1; outline: none; min-height: 22px; padding: 0 5px; }
+
+        table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+        table th, table td { border: 1px solid #cbd5e0; padding: 10px 5px; font-size: 13px; word-wrap: break-word; }
+        table th { background: var(--primary-blue) !important; color: white !important; -webkit-print-color-adjust: exact; }
+        .col-del { width: 35px; }
+        .col-no { width: 45px; }
+        .col-qty { width: 70px; }
+        .col-unit { width: 90px; }
+        .col-center { text-align: center; }
+        .delete-row { color: var(--danger-red); cursor: pointer; font-weight: bold; font-size: 18px; }
+
+        .footer-note { margin-top: 20px; font-size: 12px; color: #2d3748; border: 1px solid #e2e8f0; padding: 12px; border-radius: 8px; background: var(--light-grey); line-height: 1.6; }
+        .print-timestamp { font-size: 10px; color: #718096; margin-top: 8px; border-top: 1px solid #e2e8f0; padding-top: 4px; font-style: italic; }
+
+        .signature-area { margin-top: auto; display: flex; justify-content: space-between; padding-top: 40px; }
+        .sig-block { width: 48%; display: flex; flex-direction: column; align-items: center; text-align: center; }
+        .sig-line { border-bottom: 1px solid #333; margin: 30px auto 10px; width: 80%; min-height: 1px; }
+        
+        .name-with-brackets { display: flex; align-items: center; justify-content: center; gap: 2px; font-size: 14px; width: 100%; min-height: 22px; }
+        .sig-input { display: inline-block; outline: none; padding: 0 5px; white-space: nowrap; }
+        
+        .pos-container { display: flex; font-size: 12px; margin-top: 8px; max-width: 95%; justify-content: center; align-items: flex-start; min-height: 20px; }
+        .pos-label { white-space: nowrap; margin-right: 5px; }
+        .pos-value { border-bottom: 1px dashed #ccc; display: inline-block; min-width: 20px; outline: none; text-align: center; line-height: 1.4; padding: 0 10px; }
+
+        @media print {
+            body { background: none; padding: 0; }
+            .no-print { display: none !important; }
+            .page { margin: 0; box-shadow: none; width: 210mm; height: 297mm; padding: 15mm; -webkit-print-color-adjust: exact; }
+            .col-del { display: none; }
+            #copy-container { display: block !important; } 
+        }
+    </style>
+</head>
+<body onload="initApp()">
+
+    <div class="no-print">
+        <button class="btn btn-print" onclick="prepareAndPrint()"><span>🖨️ พิมพ์เอกสาร (ฉบับจริง + สำเนาเขียว)</span></button>
+        <button class="btn btn-clear" onclick="resetForm()"><span>🔄 ล้างข้อมูลทั้งหมด</span></button>
+    </div>
+
+    <div class="page" id="original-page">
+        <div class="header">
+            <div class="logo-box"><img src="https://drive.google.com/thumbnail?id=1QpLlHtQ7QfuHVVo470QS-sUzCWoqgnBp" alt="Logo"></div>
+            <div class="org-info">
+                <h1>องค์การบริหารส่วนตำบลม่อนจอง</h1>
+                <p>งานป้องกันและบรรเทาสาธารณภัย</p>
+                <p>เลขที่ 99 หมู่ 8 ต.ม่อนจอง อ.อมก๋อย จ.เชียงใหม่ 50310</p>
+                <p>โทรศัพท์ 052 000 573</p>
+            </div>
+            <div class="doc-title-area">
+                <div class="doc-type-tag">สำเนา</div>
+                <h2>ใบเบิกพัสดุ</h2>
+                <div class="meta-row"><b>เลขที่:</b> <div class="meta-value" contenteditable="true" id="doc_no">MJ 001/2569</div></div>
+                <div class="meta-row"><b>วันที่:</b> <div class="meta-value" contenteditable="true" id="doc_date"></div></div>
+            </div>
+        </div>
+
+        <div class="info-section">
+            <div class="field"><b>ผู้ขอเบิก :</b> <div class="editable-input" contenteditable="true" id="req_name" oninput="syncAll()"></div></div>
+            <div class="field"><b>ตำแหน่ง :</b> <div class="editable-input" contenteditable="true" id="req_pos" oninput="syncAll()"></div></div>
+            <div class="field"><b>เบอร์โทรศัพท์ :</b> <div class="editable-input" contenteditable="true" id="req_tel" oninput="syncAll()"></div></div>
+            <div class="field"><b>เบิกจากคลัง/ร้าน :</b> <div class="editable-input" contenteditable="true" id="req_store" oninput="syncAll()"></div></div>
+            <div class="field full-width"><b>เพื่อใช้สำหรับ :</b> <div class="editable-input" contenteditable="true" id="req_for" oninput="syncAll()"></div></div>
+        </div>
+
+        <table>
+            <thead>
+                <tr>
+                    <th class="col-del no-print"></th>
+                    <th class="col-no">ลำดับ</th>
+                    <th>รายการพัสดุ / รายละเอียด</th>
+                    <th class="col-qty">จำนวน</th>
+                    <th class="col-unit">หน่วยนับ</th>
+                    <th>หมายเหตุ</th>
+                </tr>
+            </thead>
+            <tbody id="item-list">
+                <tr>
+                    <td class="col-del no-print col-center"><span class="delete-row" onclick="removeRow(this)">×</span></td>
+                    <td class="col-no col-center">1</td>
+                    <td contenteditable="true" oninput="syncAll()"></td>
+                    <td class="col-qty col-center" contenteditable="true" oninput="syncAll()"></td>
+                    <td class="col-unit col-center" contenteditable="true" oninput="syncAll()"></td>
+                    <td contenteditable="true" oninput="syncAll()"></td>
+                </tr>
+            </tbody>
+        </table>
+
+        <button class="btn btn-add no-print" onclick="addRow()">+ เพิ่มแถวรายการพัสดุ</button>
+
+        <div class="footer-note">
+            <b>เงื่อนไข :</b><br>
+            1) ผู้เบิกจะต้องดำเนินการเบิกพัสดุ ไม่เกินระยะเวลา 3 วัน <br>
+            2) เมื่อผู้เบิกทำการเบิกพัสดุเรียบร้อยแล้วจะต้องดำเนินการตามวัตถุประสงค์ให้แล้วเสร็จ และรายงานมายังงานป้องกันและบรรเทาสาธารณภัย อบต.ม่อนจอง <br>
+            3) ผู้เบิกต้องแสดงเอกสารฉบับนี้ต่อคลัง/ร้านค้าทุกครั้ง
+            <div class="print-timestamp">พิมพ์เมื่อ: <span class="ts-display"></span></div>
+        </div>
+
+        <div class="signature-area">
+            <div class="sig-block">
+                <p><b>ผู้ขอเบิก</b></p>
+                <div class="sig-line"></div>
+                <div class="name-with-brackets">
+                    ( <div class="sig-input sig-name-sync"></div> )
+                </div>
+                <div class="pos-container">
+                    <span class="pos-label">ตำแหน่ง</span>
+                    <span class="pos-value sig-pos-sync"></span>
+                </div>
+            </div>
+            <div class="sig-block">
+                <p><b>ผู้อนุมัติ</b></p>
+                <div style="font-size: 13px; margin: 8px 0;">
+                    <input type="checkbox" id="approve_check" onchange="syncAll()"> อนุมัติ &nbsp; 
+                    <input type="checkbox" id="deny_check" onchange="syncAll()"> ไม่อนุมัติ
+                </div>
+                <div class="sig-line"></div>
+                <div class="name-with-brackets">
+                    ( <div class="sig-input" contenteditable="true" id="app_name" oninput="syncAll()">นายไพรศาล  คำใจ</div> )
+                </div>
+                <div class="pos-container">
+                    <span class="pos-label">ตำแหน่ง</span>
+                    <div class="pos-value" contenteditable="true" id="app_pos" oninput="syncAll()">ผู้ช่วยนักจัดการงานทั่วไป</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="copy-container"></div>
+
+    <script>
+        function initApp() {
+            const d = new Date();
+            document.getElementById('doc_date').innerText = d.toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric' });
+            updateTimestamp();
+            loadLocal();
+            syncAll();
+        }
+
+        function updateTimestamp() {
+            const d = new Date();
+            const ts = d.toLocaleDateString('th-TH', { day: 'numeric', month: 'long', year: 'numeric' }) + " เวลา " + d.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }) + " น.";
+            document.querySelectorAll('.ts-display').forEach(el => el.innerText = ts);
+        }
+
+        function syncAll() {
+            const name = document.getElementById('req_name').innerText;
+            const pos = document.getElementById('req_pos').innerText;
+            document.querySelectorAll('.sig-name-sync').forEach(el => el.innerText = name);
+            document.querySelectorAll('.sig-pos-sync').forEach(el => el.innerText = pos);
+            saveLocal();
+        }
+
+        function addRow() {
+            const tbody = document.getElementById('item-list');
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td class="col-del no-print col-center"><span class="delete-row" onclick="removeRow(this)">×</span></td>
+                <td class="col-no col-center">${tbody.rows.length + 1}</td>
+                <td contenteditable="true" oninput="syncAll()"></td>
+                <td class="col-qty col-center" contenteditable="true" oninput="syncAll()"></td>
+                <td class="col-unit col-center" contenteditable="true" oninput="syncAll()"></td>
+                <td contenteditable="true" oninput="syncAll()"></td>
+            `;
+            tbody.appendChild(tr);
+            syncAll();
+        }
+
+        function removeRow(btn) { 
+            btn.parentElement.parentElement.remove(); 
+            document.querySelectorAll('#item-list tr').forEach((row, index) => { row.cells[1].innerText = index + 1; });
+            syncAll();
+        }
+
+        function prepareAndPrint() {
+            updateTimestamp();
+            const original = document.getElementById('original-page');
+            const copyContainer = document.getElementById('copy-container');
+            copyContainer.innerHTML = original.outerHTML;
+            const copyPage = copyContainer.querySelector('.page');
+            
+            const sourceInputs = original.querySelectorAll('[contenteditable="true"]');
+            const targetInputs = copyPage.querySelectorAll('[contenteditable="true"]');
+            sourceInputs.forEach((el, i) => { targetInputs[i].innerText = el.innerText; });
+
+            copyPage.querySelector('#approve_check').checked = document.getElementById('approve_check').checked;
+            copyPage.querySelector('#deny_check').checked = document.getElementById('deny_check').checked;
+
+            window.print();
+        }
+
+        function saveLocal() {
+            const items = [];
+            document.querySelectorAll('#item-list tr').forEach(row => {
+                items.push({ i: row.cells[2].innerText, q: row.cells[3].innerText, u: row.cells[4].innerText, n: row.cells[5].innerText });
+            });
+            const data = {
+                no: document.getElementById('doc_no').innerText,
+                rn: document.getElementById('req_name').innerText,
+                rp: document.getElementById('req_pos').innerText,
+                rt: document.getElementById('req_tel').innerText,
+                rs: document.getElementById('req_store').innerText,
+                rf: document.getElementById('req_for').innerText,
+                an: document.getElementById('app_name').innerText,
+                ap: document.getElementById('app_pos').innerText,
+                items: items
+            };
+            localStorage.setItem('mj_req_final_v4', JSON.stringify(data));
+        }
+
+        function loadLocal() {
+            const stored = localStorage.getItem('mj_req_final_v4');
+            if (stored) {
+                const d = JSON.parse(stored);
+                document.getElementById('doc_no').innerText = d.no || 'MJ 001/2569';
+                document.getElementById('req_name').innerText = d.rn || '';
+                document.getElementById('req_pos').innerText = d.rp || '';
+                document.getElementById('req_tel').innerText = d.rt || '';
+                document.getElementById('req_store').innerText = d.rs || '';
+                document.getElementById('req_for').innerText = d.rf || '';
+                document.getElementById('app_name').innerText = d.an || 'นายไพรศาล  คำใจ';
+                document.getElementById('app_pos').innerText = d.ap || 'ผู้ช่วยนักจัดการงานทั่วไป';
+                if (d.items && d.items.length > 0) {
+                    const tbody = document.getElementById('item-list');
+                    tbody.innerHTML = '';
+                    d.items.forEach((it, idx) => {
+                        const tr = document.createElement('tr');
+                        tr.innerHTML = `
+                            <td class="col-del no-print col-center"><span class="delete-row" onclick="removeRow(this)">×</span></td>
+                            <td class="col-no col-center">${idx + 1}</td>
+                            <td contenteditable="true" oninput="syncAll()">${it.i}</td>
+                            <td class="col-qty col-center" contenteditable="true" oninput="syncAll()">${it.q}</td>
+                            <td class="col-unit col-center" contenteditable="true" oninput="syncAll()">${it.u}</td>
+                            <td contenteditable="true" oninput="syncAll()">${it.n}</td>
+                        `;
+                        tbody.appendChild(tr);
+                    });
+                }
+            }
+        }
+
+        function resetForm() {
+            if(confirm("ล้างข้อมูลทั้งหมด?")) { 
+                localStorage.removeItem('mj_req_final_v4'); 
+                location.reload(); 
+            }
+        }
+    </script>
+</body>
+</html>
+
