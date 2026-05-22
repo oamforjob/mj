@@ -1,0 +1,533 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ระบบออกเอกสาร (เวอร์ชันสำเนาอัตโนมัติ)</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --primary-blue: #003399;
+            --soft-blue: #eef4ff;
+            --light-grey: #f9f9f9;
+            --placeholder-color: #cbd5e0;
+            --success-green: #27ae60;
+            --danger-red: #e74c3c;
+            --save-orange: #f39c12;
+            --draft-red: rgba(255, 0, 0, 0.08);
+        }
+
+        * { box-sizing: border-box; }
+        
+        body { 
+            font-family: 'Prompt', sans-serif; 
+            background-color: #525659; 
+            margin: 0; 
+            padding: 10px; 
+        }
+
+        .no-print {
+            max-width: 210mm;
+            margin: 0 auto 10px;
+            background: #2d3748;
+            padding: 12px 25px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            color: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+        }
+
+        .control-left { display: flex; gap: 20px; align-items: center; }
+        .toggle-group { display: flex; gap: 10px; align-items: center; }
+        .action-group { display: flex; gap: 8px; }
+
+        .btn { 
+            padding: 8px 16px; 
+            border: none; 
+            border-radius: 8px; 
+            cursor: pointer; 
+            font-family: 'Prompt'; 
+            font-weight: 500; 
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            transition: 0.2s;
+        }
+        .btn-print { background: var(--success-green); color: white; }
+        .btn-clear { background: #4a5568; color: white; }
+        
+        .btn:hover { opacity: 0.9; transform: translateY(-1px); }
+        .btn-add { background: var(--primary-blue); color: white; margin-top: 15px; }
+
+        .mode-selector, .type-selector {
+            display: inline-flex;
+            background: #1a202c;
+            padding: 4px;
+            border-radius: 10px;
+            cursor: pointer;
+        }
+        .opt { padding: 5px 15px; border-radius: 7px; font-size: 13px; color: #718096; transition: 0.2s; }
+        .opt.active { background: white; color: #1a202c; font-weight: 600; }
+
+        .type-selector .opt.active { background: var(--primary-blue); color: white; }
+
+        .page {
+            width: 210mm;
+            min-height: 297mm;
+            padding: 15mm 20mm;
+            margin: 0 auto;
+            background: white;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            box-shadow: 0 0 10px rgba(0,0,0,0.5);
+        }
+
+        .watermark {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) rotate(-45deg);
+            font-size: 140px;
+            color: var(--draft-red);
+            font-weight: 800;
+            white-space: nowrap;
+            pointer-events: none;
+            display: none;
+            z-index: 999;
+            border: 15px solid rgba(255, 0, 0, 0.03); 
+            padding: 20px;
+        }
+        .is-draft .watermark { display: block; }
+
+        @media print {
+            body { background: none; padding: 0; }
+            .no-print { display: none !important; }
+            .page { 
+                margin: 0 auto; 
+                box-shadow: none; 
+                width: 210mm; 
+                min-height: 297mm; 
+                padding: 10mm 15mm;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+                page-break-after: always;
+            }
+            .page:last-child { page-break-after: auto; }
+        }
+
+        .header { 
+            display: flex; 
+            align-items: center; 
+            border-bottom: 3px solid var(--primary-blue); 
+            padding-bottom: 15px; 
+            margin-bottom: 20px;
+        }
+        
+        .shop-info { flex-grow: 1; line-height: 1.4; padding-right: 10px; }
+        .shop-info [contenteditable="true"]:hover {
+            background-color: #f0f4f8;
+            border-radius: 4px;
+            cursor: text;
+        }
+        .shop-info h1 { margin: 0 0 5px 0; color: var(--primary-blue); font-size: 24px; outline: none; }
+        .shop-info p { margin: 0; font-size: 13.5px; color: #333; outline: none; }
+
+        .doc-title-area { 
+            text-align: left; 
+            width: 260px; 
+            background: var(--light-grey);
+            padding: 10px;
+            border-radius: 4px;
+        }
+        .doc-title-area h2 { margin: 0 0 10px 0; color: var(--primary-blue); font-size: 22px; text-align: right; white-space: nowrap; }
+        .meta-row { display: flex; font-size: 13px; margin-bottom: 5px; }
+        .meta-row b { min-width: 45px; }
+
+        .customer-zone {
+            display: grid;
+            grid-template-columns: 1.5fr 1fr;
+            gap: 20px;
+            margin-bottom: 25px;
+            padding: 15px 20px;
+            background: var(--soft-blue);
+            border-radius: 6px;
+        }
+        .cust-field { margin-bottom: 8px; font-size: 14px; display: flex; }
+        .cust-field b { min-width: 75px; color: #333; }
+
+        .editable-input { border-bottom: 1px dashed #cbd5e0; flex-grow: 1; outline: none; min-height: 22px; padding-left: 5px; }
+        
+        [contenteditable="true"]:empty:before { 
+            content: attr(data-placeholder); 
+            color: var(--placeholder-color); 
+        }
+
+        table { width: 100%; border-collapse: collapse; }
+        table th { background: var(--primary-blue); color: white; padding: 12px 8px; font-size: 14px; }
+        table td { border-bottom: 1px solid #edf2f7; padding: 12px 8px; font-size: 14px; vertical-align: top; }
+        #item-list tr:nth-child(even) { background-color: var(--light-grey); }
+        
+        .col-center { text-align: center; }
+        .col-right { text-align: right; }
+        .delete-row { color: var(--danger-red); cursor: pointer; font-weight: bold; }
+
+        .summary-area { display: flex; justify-content: flex-end; margin-top: 20px; }
+        .total-table { width: 340px; }
+        .total-table td { padding: 6px 12px; border: none; }
+        .grand-total { background: var(--primary-blue); font-weight: 600; color: white; font-size: 18px; }
+
+        .vat-selector { display: inline-flex; background: #e2e8f0; padding: 3px; border-radius: 20px; cursor: pointer; margin-bottom: 5px; }
+        .v-opt { padding: 2px 10px; border-radius: 15px; font-size: 11px; font-weight: 600; }
+        .v-opt.active { background: var(--primary-blue); color: white; }
+
+        .notes-box { margin-top: 20px; font-size: 13px; color: #4a5568; border: 1px solid #e2e8f0; padding: 15px; line-height: 1.8; background-color: var(--light-grey); border-radius: 6px; }
+
+        .signature-area { margin-top: auto; display: flex; justify-content: space-between; padding-top: 30px; text-align: center; transition: all 0.3s; }
+        .sig-block { width: 45%; position: relative; transition: all 0.3s; }
+        .sig-line { border-bottom: 1px solid #333; margin: 15px auto 10px; width: 80%; position: relative; z-index: 2; }
+        .sig-input { font-size: 14px; outline: none; border-bottom: 1px dashed #cbd5e0; min-width: 180px; display: inline-block; padding: 0 5px; color: #1a202c; }
+        .sig-space { height: 50px; }
+    </style>
+</head>
+<body onload="initApp()">
+
+    <div class="no-print">
+        <div class="control-left">
+            <div class="toggle-group">
+                <span style="font-size: 14px; font-weight: 500;">ประเภทเอกสาร:</span>
+                <div class="type-selector">
+                    <div id="t_quotation" class="opt active" onclick="switchType('quotation')">ใบเสนอราคา</div>
+                    <div id="t_delivery" class="opt" onclick="switchType('delivery')">ใบส่งของ</div>
+                    <div id="t_receipt" class="opt" onclick="switchType('receipt')">ใบเสร็จรับเงิน</div>
+                </div>
+            </div>
+            <div class="toggle-group">
+                <span style="font-size: 14px; font-weight: 500;">สถานะ:</span>
+                <div class="mode-selector">
+                    <div id="m_draft" class="opt active" onclick="switchMode(true)">แบบร่าง</div>
+                    <div id="m_final" class="opt" onclick="switchMode(false)">ฉบับจริง</div>
+                </div>
+            </div>
+        </div>
+        <div class="action-group">
+            <button class="btn btn-print" onclick="window.print()"><span>พิมพ์ / PDF (2 หน้า)</span></button>
+            <button class="btn btn-clear" onclick="clearHistory()"><span>รีเซ็ต</span></button>
+        </div>
+    </div>
+
+    <div class="page is-draft" id="doc-page">
+        <div class="watermark">ร่าง / DRAFT</div>
+
+        <div class="header">
+            <div class="shop-info">
+                <h1 contenteditable="true" id="shop_name" oninput="saveH()" spellcheck="false" data-placeholder="ระบุชื่อร้านค้าของคุณ">ระบุชื่อร้านค้าของคุณ</h1>
+                <p contenteditable="true" id="shop_addr" oninput="saveH()" spellcheck="false" data-placeholder="ระบุที่ตั้ง/ที่อยู่ร้านค้า">ที่อยู่ร้านค้า...</p>
+                <p contenteditable="true" id="shop_tel" oninput="saveH()" spellcheck="false" data-placeholder="เบอร์โทรศัพท์">โทรศัพท์: ...</p>
+                <p contenteditable="true" id="shop_email" oninput="saveH()" spellcheck="false" data-placeholder="อีเมล">Email: ...</p>
+            </div>
+            <div class="doc-title-area">
+                <h2 id="doc-title">ใบเสนอราคา</h2>
+                <div class="meta-row"><b>เลขที่:</b> <span class="editable-input" contenteditable="true" data-placeholder="......"></span></div>
+                <div class="meta-row"><b>วันที่:</b> <span class="editable-input" contenteditable="true" data-placeholder="......"></span></div>
+            </div>
+        </div>
+
+        <div class="customer-zone">
+            <div>
+                <div class="cust-field"><b>เรียน :</b> <div class="editable-input" id="c_name" contenteditable="true" oninput="saveH()">องค์การบริหารส่วนตำบลม่อนจอง</div></div>
+                <div class="cust-field" style="margin-top: 5px;"><b>ที่อยู่ :</b> <div class="editable-input" id="c_addr" contenteditable="true" oninput="saveH()">99 ม.8 ตำบล ม่อนจอง อำเภออมก๋อย เชียงใหม่</div></div>
+            </div>
+            <div>
+                <div class="cust-field"><b>เบอร์โทร :</b> <div class="editable-input" id="c_tel" contenteditable="true" oninput="saveH()">052 000 573</div></div>
+                <div class="cust-field" style="margin-top: 5px;"><b>ผู้เสียภาษี :</b> <div class="editable-input" id="c_tax" contenteditable="true" oninput="saveH()">0994000433611</div></div>
+            </div>
+        </div>
+
+        <table>
+            <thead>
+                <tr>
+                    <th width="5%" class="no-print"></th>
+                    <th width="8%">ลำดับ</th>
+                    <th>รายการสินค้า / รายละเอียด</th>
+                    <th width="12%">จำนวน</th>
+                    <th width="15%">ราคา/หน่วย</th>
+                    <th width="18%">ยอดรวม (บาท)</th>
+                </tr>
+            </thead>
+            <tbody id="item-list">
+                <tr>
+                    <td class="no-print col-center"><span class="delete-row" onclick="removeRow(this)">×</span></td>
+                    <td class="col-center">1</td>
+                    <td contenteditable="true" class="editable-input" data-placeholder="รายละเอียดงาน..."></td>
+                    <td class="col-center qty" contenteditable="true" oninput="calc()"></td>
+                    <td class="col-right price" contenteditable="true" oninput="calc()"></td>
+                    <td class="col-right row-total">0.00</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <button class="btn btn-add no-print" onclick="addRow()">+ เพิ่มแถวรายการใหม่</button>
+
+        <div class="summary-area">
+            <table class="total-table">
+                <tr><td class="col-right">รวมเป็นเงิน:</td><td class="col-right" id="subt">0.00</td></tr>
+                <tr>
+                    <td class="col-right">
+                        <div class="vat-selector no-print" onclick="toggleVat()">
+                            <div id="v_off" class="v-opt active">ไม่คิดภาษี</div>
+                            <div id="v_on" class="v-opt">ภาษี 7%</div>
+                        </div>
+                        <span id="vat-label">ภาษีมูลค่าเพิ่ม 0%:</span>
+                    </td>
+                    <td class="col-right" id="v_amt">0.00</td>
+                </tr>
+                <tr class="grand-total"><td class="col-right">ยอดรวมทั้งสิ้น:</td><td class="col-right" id="gtot">0.00</td></tr>
+            </table>
+        </div>
+
+        <div class="notes-box" id="notes-area">
+            </div>
+
+        <div class="signature-area" id="sig-container">
+            <div class="sig-block" id="approver-block">
+                <p id="approver-title">ผู้อนุมัติสั่งซื้อ</p>
+                <div class="sig-space"></div>
+                <div class="sig-line"></div>
+                ( <div class="sig-input" contenteditable="true" data-placeholder="ชื่อ-นามสกุล"></div> )
+                <p style="font-size: 12px; margin-top: 10px;">วันที่ ________/________/________</p>
+            </div>
+            
+            <div class="sig-block" id="drafter-block">
+                <p><b id="sig-title">ผู้ร่าง / ผู้เสนอราคา</b></p>
+                <div class="sig-space"></div>
+                <div class="sig-line"></div>
+                ( <div class="sig-input" contenteditable="true" id="sig-name" oninput="saveH()" data-placeholder="พิมพ์ ชื่อ-นามสกุล ผู้ดำเนินงาน"></div> )
+                <p style="font-size: 13px; margin-top: 8px;">
+                    <div class="sig-input" contenteditable="true" id="sig-dept" oninput="saveH()" data-placeholder="พิมพ์ ชื่อร้านค้า / ตำแหน่ง"></div>
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let isVatEnabled = false; 
+        let isDraftMode = true;   
+        let docType = 'quotation'; 
+        let copiedPageElement = null; 
+
+        const notesTemplate = {
+            quotation: `<b>เงื่อนไขและหมายเหตุ:</b><br>
+            • กำหนดยืนราคา <span contenteditable="true">7</span> วัน<br>
+            • กำหนดส่งมอบของ <span contenteditable="true">3-7</span> วัน หลังจากได้รับใบสั่งซื้อ (PO)<br>
+            • กรณีสินค้าได้รับไม่ถูกต้อง ผู้ซื้อต้องแจ้งให้ทราบภายใน 7 วัน`,
+            delivery: `<b>เงื่อนไขและข้อตกลงการรับสินค้า:</b><br>
+            • ได้รับสินค้าตามรายการข้างต้นไว้ถูกต้องและอยู่ในสภาพเรียบร้อยแล้ว<br>
+            • เอกสารฉบับนี้ใช้สำหรับยืนยันการส่งมอบสินค้าชั่วคราว<br>
+            • โปรดเก็บรักษาเอกสารไว้เพื่อเป็นหลักฐานในการตรวจสอบ`,
+            receipt: `<b>หมายเหตุ / เงื่อนไขการชำระเงิน:</b><br>
+            • เอกสารฉบับนี้จะสมบูรณ์ถูกต้องต่อเมื่อบริษัทฯ ได้เรียกเก็บเงินตามเช็ค หรือเงินสดเข้าบัญชีเรียบร้อยแล้ว<br>
+            • ชำระเงินโดย: <span contenteditable="true">[ &nbsp; ] เงินสด &nbsp; &nbsp; [ &nbsp; ] โอนผ่านธนาคาร &nbsp; &nbsp; [ &nbsp; ] เช็คธนาคาร........................ เลขที่เช็ค........................</span>`
+        };
+
+        function initApp() { 
+            loadH(); 
+            calc(); 
+            updateUI(); 
+        }
+
+        function switchType(type) {
+            docType = type;
+            document.getElementById('t_quotation').classList.toggle('active', type === 'quotation');
+            document.getElementById('t_delivery').classList.toggle('active', type === 'delivery');
+            document.getElementById('t_receipt').classList.toggle('active', type === 'receipt');
+            
+            updateUI();
+            saveH();
+        }
+
+        function switchMode(draftMode) {
+            isDraftMode = draftMode;
+            document.getElementById('m_draft').classList.toggle('active', isDraftMode);
+            document.getElementById('m_final').classList.toggle('active', !isDraftMode);
+            
+            const page = document.getElementById('doc-page');
+            isDraftMode ? page.classList.add('is-draft') : page.classList.remove('is-draft');
+            
+            updateUI();
+        }
+
+        function updateUI() {
+            const docTitle = document.getElementById('doc-title');
+            const notesArea = document.getElementById('notes-area');
+            const sigTitle = document.getElementById('sig-title');
+            const approverTitle = document.getElementById('approver-title');
+            const approverBlock = document.getElementById('approver-block');
+            const drafterBlock = document.getElementById('drafter-block');
+            const sigContainer = document.getElementById('sig-container');
+
+            if (docType === 'quotation') {
+                docTitle.innerText = "ใบเสนอราคา";
+                notesArea.innerHTML = notesTemplate.quotation;
+                approverTitle.innerText = "ผู้อนุมัติสั่งซื้อ";
+            } else if (docType === 'delivery') {
+                docTitle.innerText = "ใบส่งของ";
+                notesArea.innerHTML = notesTemplate.delivery;
+                approverTitle.innerText = "ผู้รับสินค้า";
+            } else {
+                docTitle.innerText = "ใบเสร็จรับเงิน";
+                notesArea.innerHTML = notesTemplate.receipt;
+            }
+
+            if (docType === 'receipt') {
+                sigTitle.innerText = "ผู้รับเงิน";
+                approverBlock.style.display = "none"; 
+                drafterBlock.style.width = "100%";   
+                sigContainer.style.justifyContent = "center"; 
+            } else {
+                if (isDraftMode) {
+                    sigTitle.innerText = docType === 'quotation' ? "ผู้ร่าง / ผู้เสนอราคา" : "ผู้จัดส่ง / ผู้ร่าง";
+                    approverBlock.style.display = "none"; 
+                    drafterBlock.style.width = "100%";
+                    sigContainer.style.justifyContent = "center";
+                } else {
+                    sigTitle.innerText = docType === 'quotation' ? "ผู้เสนอราคา" : "ผู้ส่งของ";
+                    approverBlock.style.display = "block";
+                    drafterBlock.style.width = "45%";
+                    sigContainer.style.justifyContent = "space-between";
+                }
+            }
+        }
+
+        function toggleVat() {
+            isVatEnabled = !isVatEnabled;
+            document.getElementById('v_on').classList.toggle('active', isVatEnabled);
+            document.getElementById('v_off').classList.toggle('active', !isVatEnabled);
+            document.getElementById('vat-label').innerText = isVatEnabled ? "ภาษีมูลค่าเพิ่ม 7%:" : "ภาษีมูลค่าเพิ่ม 0%:";
+            calc();
+        }
+
+        function addRow() {
+            const tbody = document.getElementById('item-list');
+            const rowCount = tbody.rows.length + 1;
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td class="no-print col-center"><span class="delete-row" onclick="removeRow(this)">×</span></td>
+                <td class="col-center">${rowCount}</td>
+                <td contenteditable="true" class="editable-input"></td>
+                <td class="col-center qty" contenteditable="true" oninput="calc()"></td>
+                <td class="col-right price" contenteditable="true" oninput="calc()"></td>
+                <td class="col-right row-total">0.00</td>
+            `;
+            tbody.appendChild(tr);
+            calc();
+        }
+
+        function removeRow(btn) { 
+            btn.parentElement.parentElement.remove(); 
+            document.querySelectorAll('#item-list tr').forEach((row, index) => {
+                row.cells[1].innerText = index + 1;
+            });
+            calc(); 
+        }
+
+        function calc() {
+            let total = 0;
+            document.querySelectorAll('#item-list tr').forEach(row => {
+                const q = parseFloat(row.querySelector('.qty').innerText.replace(/,/g, '')) || 0;
+                const p = parseFloat(row.querySelector('.price').innerText.replace(/,/g, '')) || 0;
+                const r = q * p; 
+                total += r;
+                row.querySelector('.row-total').innerText = r.toLocaleString('th-TH', {minimumFractionDigits: 2});
+            });
+            const vAmt = isVatEnabled ? total * 0.07 : 0;
+            const grand = total + vAmt;
+            document.getElementById('subt').innerText = total.toLocaleString('th-TH', {minimumFractionDigits: 2});
+            document.getElementById('v_amt').innerText = vAmt.toLocaleString('th-TH', {minimumFractionDigits: 2});
+            document.getElementById('gtot').innerText = grand.toLocaleString('th-TH', {minimumFractionDigits: 2});
+        }
+
+        function saveH() {
+            const d = { 
+                type: docType,
+                n: document.getElementById('c_name').innerText, 
+                a: document.getElementById('c_addr').innerText, 
+                t: document.getElementById('c_tel').innerText, 
+                x: document.getElementById('c_tax').innerText,
+                sn: document.getElementById('shop_name').innerText,
+                sa: document.getElementById('shop_addr').innerText,
+                st: document.getElementById('shop_tel').innerText,
+                se: document.getElementById('shop_email').innerText,
+                sign: document.getElementById('sig-name').innerText,
+                sigd: document.getElementById('sig-dept').innerText
+            };
+            localStorage.setItem('quotation_free_v10', JSON.stringify(d));
+        }
+
+        function loadH() {
+            const data = localStorage.getItem('quotation_free_v10');
+            if (data) {
+                const h = JSON.parse(data);
+                if(h.type) {
+                    docType = h.type;
+                    document.getElementById('t_quotation').classList.toggle('active', docType === 'quotation');
+                    document.getElementById('t_delivery').classList.toggle('active', docType === 'delivery');
+                    document.getElementById('t_receipt').classList.toggle('active', docType === 'receipt');
+                }
+                if(h.n) document.getElementById('c_name').innerText = h.n;
+                if(h.a) document.getElementById('c_addr').innerText = h.a;
+                if(h.t) document.getElementById('c_tel').innerText = h.t;
+                if(h.x) document.getElementById('c_tax').innerText = h.x;
+                if(h.sn) document.getElementById('shop_name').innerText = h.sn;
+                if(h.sa) document.getElementById('shop_addr').innerText = h.sa;
+                if(h.st) document.getElementById('shop_tel').innerText = h.st;
+                if(h.se) document.getElementById('shop_email').innerText = h.se;
+                if(h.sign) document.getElementById('sig-name').innerText = h.sign;
+                if(h.sigd) document.getElementById('sig-dept').innerText = h.sigd;
+            }
+        }
+
+        function clearHistory() { 
+            if(confirm("ล้างข้อมูลและประวัติทั้งหมด?")) { 
+                localStorage.removeItem('quotation_free_v10'); 
+                location.reload(); 
+            } 
+        }
+
+        // ระบบจับความเคลื่อนไหวก่อนพิมพ์ (สร้างเฉพาะหน้าสำเนา โดยไม่เปลี่ยนชื่อหน้าหลัก)
+        window.addEventListener('beforeprint', function() {
+            const originalPage = document.getElementById('doc-page');
+
+            // 1. โคลนหน้าหลักเพื่อสร้างหน้าสำเนา (Copy) โดยหน้าหลักจะยังใช้ชื่อเดิมไม่ถูกเปลี่ยน
+            copiedPageElement = originalPage.cloneNode(true);
+            
+            // 2. เปลี่ยนหัวข้อของหน้าสำเนาให้เป็นคำว่า "สำเนา"
+            const copyTitleEl = copiedPageElement.querySelector('#doc-title');
+            if(copyTitleEl) {
+                if(docType === 'quotation') copyTitleEl.innerText = "สำเนาใบเสนอราคา";
+                else if(docType === 'delivery') copyTitleEl.innerText = "สำเนาใบส่งของ";
+                else copyTitleEl.innerText = "สำเนาใบเสร็จรับเงิน";
+                copyTitleEl.style.color = "#555555"; 
+            }
+
+            // นำหน้าสำเนาไปต่อท้ายตัวหลักเพื่อให้กลายเป็นหน้าที่ 2 ในการพิมพ์
+            document.body.appendChild(copiedPageElement);
+        });
+
+        // หลังจากพิมพ์เสร็จ เคลียร์หน้าสำเนาออก
+        window.addEventListener('afterprint', function() {
+            if(copiedPageElement) {
+                copiedPageElement.remove();
+                copiedPageElement = null;
+            }
+        });
+    </script>
+</body>
+</html>
