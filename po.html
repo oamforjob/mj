@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ระบบออกเอกสาร (เวอร์ชันสำเนาอัตโนมัติ)</title>
+    <title>ระบบออกเอกสาร (เวอร์ชันฉบับจริง)</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600&display=swap" rel="stylesheet">
@@ -17,7 +17,6 @@
             --success-green: #27ae60;
             --danger-red: #e74c3c;
             --save-orange: #f39c12;
-            --draft-red: rgba(255, 0, 0, 0.08);
         }
 
         * { box-sizing: border-box; }
@@ -65,7 +64,7 @@
         .btn:hover { opacity: 0.9; transform: translateY(-1px); }
         .btn-add { background: var(--primary-blue); color: white; margin-top: 15px; }
 
-        .mode-selector, .type-selector {
+        .type-selector {
             display: inline-flex;
             background: #1a202c;
             padding: 4px;
@@ -89,23 +88,6 @@
             overflow: hidden;
             box-shadow: 0 0 10px rgba(0,0,0,0.5);
         }
-
-        .watermark {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%) rotate(-45deg);
-            font-size: 140px;
-            color: var(--draft-red);
-            font-weight: 800;
-            white-space: nowrap;
-            pointer-events: none;
-            display: none;
-            z-index: 999;
-            border: 15px solid rgba(255, 0, 0, 0.03); 
-            padding: 20px;
-        }
-        .is-draft .watermark { display: block; }
 
         @media print {
             body { background: none; padding: 0; }
@@ -209,13 +191,6 @@
                     <div id="t_receipt" class="opt" onclick="switchType('receipt')">ใบเสร็จรับเงิน</div>
                 </div>
             </div>
-            <div class="toggle-group">
-                <span style="font-size: 14px; font-weight: 500;">สถานะ:</span>
-                <div class="mode-selector">
-                    <div id="m_draft" class="opt active" onclick="switchMode(true)">แบบร่าง</div>
-                    <div id="m_final" class="opt" onclick="switchMode(false)">ฉบับจริง</div>
-                </div>
-            </div>
         </div>
         <div class="action-group">
             <button class="btn btn-print" onclick="window.print()"><span>พิมพ์ / PDF (2 หน้า)</span></button>
@@ -223,8 +198,7 @@
         </div>
     </div>
 
-    <div class="page is-draft" id="doc-page">
-        <div class="watermark">ร่าง / DRAFT</div>
+    <div class="page" id="doc-page">
 
         <div class="header">
             <div class="shop-info">
@@ -242,7 +216,7 @@
 
         <div class="customer-zone">
             <div>
-                <div class="cust-field"><b>เรียน :</b> <div class="editable-input" id="c_name" contenteditable="true" oninput="saveH()">องค์การบริหารส่วนตำบลม่อนจอง</div></div>
+                <div class="cust-field"><b id="cust-label">เรียน :</b> <div class="editable-input" id="c_name" contenteditable="true" oninput="saveH()">องค์การบริหารส่วนตำบลม่อนจอง</div></div>
                 <div class="cust-field" style="margin-top: 5px;"><b>ที่อยู่ :</b> <div class="editable-input" id="c_addr" contenteditable="true" oninput="saveH()">99 ม.8 ตำบล ม่อนจอง อำเภออมก๋อย เชียงใหม่</div></div>
             </div>
             <div>
@@ -293,8 +267,7 @@
             </table>
         </div>
 
-        <div class="notes-box" id="notes-area">
-            </div>
+        <div class="notes-box" id="notes-area"></div>
 
         <div class="signature-area" id="sig-container">
             <div class="sig-block" id="approver-block">
@@ -306,7 +279,7 @@
             </div>
             
             <div class="sig-block" id="drafter-block">
-                <p><b id="sig-title">ผู้ร่าง / ผู้เสนอราคา</b></p>
+                <p><b id="sig-title">ผู้เสนอราคา</b></p>
                 <div class="sig-space"></div>
                 <div class="sig-line"></div>
                 ( <div class="sig-input" contenteditable="true" id="sig-name" oninput="saveH()" data-placeholder="พิมพ์ ชื่อ-นามสกุล ผู้ดำเนินงาน"></div> )
@@ -319,7 +292,6 @@
 
     <script>
         let isVatEnabled = false; 
-        let isDraftMode = true;   
         let docType = 'quotation'; 
         let copiedPageElement = null; 
 
@@ -353,17 +325,6 @@
             saveH();
         }
 
-        function switchMode(draftMode) {
-            isDraftMode = draftMode;
-            document.getElementById('m_draft').classList.toggle('active', isDraftMode);
-            document.getElementById('m_final').classList.toggle('active', !isDraftMode);
-            
-            const page = document.getElementById('doc-page');
-            isDraftMode ? page.classList.add('is-draft') : page.classList.remove('is-draft');
-            
-            updateUI();
-        }
-
         function updateUI() {
             const docTitle = document.getElementById('doc-title');
             const notesArea = document.getElementById('notes-area');
@@ -372,18 +333,22 @@
             const approverBlock = document.getElementById('approver-block');
             const drafterBlock = document.getElementById('drafter-block');
             const sigContainer = document.getElementById('sig-container');
+            const custLabel = document.getElementById('cust-label');
 
             if (docType === 'quotation') {
                 docTitle.innerText = "ใบเสนอราคา";
                 notesArea.innerHTML = notesTemplate.quotation;
                 approverTitle.innerText = "ผู้อนุมัติสั่งซื้อ";
+                if (custLabel) custLabel.innerText = "เรียน :";
             } else if (docType === 'delivery') {
                 docTitle.innerText = "ใบส่งของ";
                 notesArea.innerHTML = notesTemplate.delivery;
                 approverTitle.innerText = "ผู้รับสินค้า";
+                if (custLabel) custLabel.innerText = "ลูกค้า :";
             } else {
                 docTitle.innerText = "ใบเสร็จรับเงิน";
                 notesArea.innerHTML = notesTemplate.receipt;
+                if (custLabel) custLabel.innerText = "ลูกค้า :";
             }
 
             if (docType === 'receipt') {
@@ -392,17 +357,10 @@
                 drafterBlock.style.width = "100%";   
                 sigContainer.style.justifyContent = "center"; 
             } else {
-                if (isDraftMode) {
-                    sigTitle.innerText = docType === 'quotation' ? "ผู้ร่าง / ผู้เสนอราคา" : "ผู้จัดส่ง / ผู้ร่าง";
-                    approverBlock.style.display = "none"; 
-                    drafterBlock.style.width = "100%";
-                    sigContainer.style.justifyContent = "center";
-                } else {
-                    sigTitle.innerText = docType === 'quotation' ? "ผู้เสนอราคา" : "ผู้ส่งของ";
-                    approverBlock.style.display = "block";
-                    drafterBlock.style.width = "45%";
-                    sigContainer.style.justifyContent = "space-between";
-                }
+                sigTitle.innerText = docType === 'quotation' ? "ผู้เสนอราคา" : "ผู้ส่งของ";
+                approverBlock.style.display = "block";
+                drafterBlock.style.width = "45%";
+                sigContainer.style.justifyContent = "space-between";
             }
         }
 
@@ -501,14 +459,10 @@
             } 
         }
 
-        // ระบบจับความเคลื่อนไหวก่อนพิมพ์ (สร้างเฉพาะหน้าสำเนา โดยไม่เปลี่ยนชื่อหน้าหลัก)
         window.addEventListener('beforeprint', function() {
             const originalPage = document.getElementById('doc-page');
-
-            // 1. โคลนหน้าหลักเพื่อสร้างหน้าสำเนา (Copy) โดยหน้าหลักจะยังใช้ชื่อเดิมไม่ถูกเปลี่ยน
             copiedPageElement = originalPage.cloneNode(true);
             
-            // 2. เปลี่ยนหัวข้อของหน้าสำเนาให้เป็นคำว่า "สำเนา"
             const copyTitleEl = copiedPageElement.querySelector('#doc-title');
             if(copyTitleEl) {
                 if(docType === 'quotation') copyTitleEl.innerText = "สำเนาใบเสนอราคา";
@@ -517,11 +471,9 @@
                 copyTitleEl.style.color = "#555555"; 
             }
 
-            // นำหน้าสำเนาไปต่อท้ายตัวหลักเพื่อให้กลายเป็นหน้าที่ 2 ในการพิมพ์
             document.body.appendChild(copiedPageElement);
         });
 
-        // หลังจากพิมพ์เสร็จ เคลียร์หน้าสำเนาออก
         window.addEventListener('afterprint', function() {
             if(copiedPageElement) {
                 copiedPageElement.remove();
