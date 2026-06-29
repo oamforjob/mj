@@ -224,8 +224,9 @@
             </div>
 
             <div class="info-section">
-                <div class="field full-width"><b>ได้รับวัสดุจาก (ร้านค้า/บริษัท/บุคคล) :</b> <div class="editable-input" contenteditable="true" id="rec_from" oninput="syncRec()"></div></div>
-                <div class="field"><b>อ้างอิงเอกสาร (ใบส่งของ/ใบเสร็จ) :</b> <div class="editable-input" contenteditable="true" id="rec_ref" oninput="saveLocal('rec')"></div></div>
+                <div class="field full-width"><b>ชื่อ - นามสกุล :</b> <div class="editable-input" contenteditable="true" id="rec_from" oninput="syncRec()"></div></div>
+                <div class="field"><b>หมู่บ้าน :</b> <div class="editable-input" contenteditable="true" id="rec_ref" oninput="saveLocal('rec')"></div></div>
+                <div class="field"><b>หมู่ที่ :</b> <div class="editable-input" contenteditable="true" id="rec_ref" oninput="saveLocal('rec')"></div></div>
                 <div class="field"><b>เพื่อใช้สำหรับ :</b> <div class="editable-input" contenteditable="true" id="rec_for" oninput="saveLocal('rec')"></div></div>
             </div>
 
@@ -254,17 +255,9 @@
 
             <button class="btn btn-add no-print" onclick="addRow('rec')">+ เพิ่มแถวรายการพัสดุ</button>
 
-            <div class="footer-note">
-                <b>เงื่อนไขการตรวจรับ :</b><br>
-                1) ผู้ตรวจรับต้องตรวจสอบความถูกต้องของพัสดุ จำนวน และสภาพให้เรียบร้อย<br>
-                2) หากพบความชำรุดบกพร่องให้แจ้งผู้ส่งมอบทันทีเพื่อดำเนินการแก้ไข<br>
-                3) เอกสารฉบับนี้ใช้เป็นหลักฐานในการตรวจรับพัสดุเข้าคลังเพื่อควบคุมตามระเบียบพัสดุฯ
-                <div class="print-timestamp">พิมพ์เมื่อ: <span class="ts-display"></span></div>
-            </div>
-
             <div class="signature-area">
                 <div class="sig-block">
-                    <p><b>ผู้ส่งมอบวัสดุ</b></p>
+                    <p><b>ลงชื่อผู้รับ</b></p>
                     <div class="sig-line"></div>
                     <div class="name-with-brackets">
                         ( <div class="sig-input" id="sig-deliver-name"></div> )
@@ -275,7 +268,7 @@
                     </div>
                 </div>
                 <div class="sig-block">
-                    <p><b>ผู้ตรวจรับพัสดุ</b></p>
+                    <p><b>ลงชื่อผู้มอบ</b></p>
                     <div class="sig-line"></div>
                     <div class="name-with-brackets">
                         ( <div class="sig-input" contenteditable="true" id="ins_name_rec" oninput="saveLocal('rec')"></div> )
